@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VulnBank - Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="navbar">
+    <h1>&#128176; VulnBank</h1>
+    <div>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="transfer.html">Transfer</a>
+      <a href="admin.html">Admin</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Welcome, <span id="welcome-name"></span></h2>
+      <p class="muted">Logged in as <span id="welcome-role" class="badge"></span></p>
+    </div>
+
+    <div class="card">
+      <h2>Look up account by ID</h2>
+      <p class="muted">Try incrementing the ID — there's no ownership check (IDOR).</p>
+      <input id="account-id" placeholder="Account ID, e.g. 1" style="width:200px;display:inline-block;">
+      <button onclick="loadAccount()">Load</button>
+      <div id="account-info" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Transaction history</h2>
+      <input id="hist-account-id" placeholder="Account ID for history" style="width:200px;display:inline-block;">
+      <button onclick="loadHistory()">Load history</button>
+      <table id="history-table">
+        <thead><tr><th>ID</th><th>From</th><th>To</th><th>Amount</th><th>Note</th><th>Date</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+<script src="js/api.js"></script>
+<script>
+requireAuth();
+const user = getUser();
+document.getElementById('welcome-name').textContent = user.full_name || user.username;
+document.getElementById('welcome-role').textContent = user.role;
+
+async function loadAccount() {
+  const id = document.getElementById('account-id').value;
+  try {
+    const acc = await api('/accounts/' + id);
+    document.getElementById('account-info').innerHTML =
+      `<div class="balance">$${acc.balance.toFixed(2)}</div>
+       <p class="muted">Account #${acc.account_number} — owner user_id ${acc.user_id}</p>`;
+  } catch (e) {
+    document.getElementById('account-info').innerHTML = `<p class="error">${e.message}</p>`;
+  }
+}
+
+async function loadHistory() {
+  const id = document.getElementById('hist-account-id').value;
+  try {
+    const rows = await api('/transactions/account/' + id);
+    const tbody = document.querySelector('#history-table tbody');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      // VULNERABILITY (Stored XSS sink, CWE-79): note is inserted via
+      // innerHTML with no escaping, executing any HTML/JS stored in it.
+      tr.innerHTML = `<td>${r.id}</td><td>${r.from_account}</td><td>${r.to_account}</td>
+                       <td>${r.amount}</td><td>${r.note}</td><td>${r.created_at}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    alert(e.message);
+  }
+}
+</script>
+</body>
+</html>

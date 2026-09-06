@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VulnBank - Transfer</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="navbar">
+    <h1>&#128176; VulnBank</h1>
+    <div>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="transfer.html">Transfer</a>
+      <a href="admin.html">Admin</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container" style="max-width:480px;">
+    <div class="card">
+      <h2>Send money</h2>
+      <input id="from" placeholder="From account ID">
+      <input id="to" placeholder="To account ID">
+      <input id="amount" type="number" placeholder="Amount">
+      <textarea id="note" placeholder="Note (try HTML like <img src=x onerror=alert(1)>)"></textarea>
+      <button onclick="doTransfer()">Send</button>
+      <p id="transfer-msg"></p>
+    </div>
+
+    <div class="card">
+      <h2>Export statement</h2>
+      <input id="export-account" placeholder="Account number, e.g. ACC10002">
+      <button onclick="doExport()">Export CSV</button>
+      <pre id="export-out" class="muted"></pre>
+    </div>
+  </div>
+
+<script src="js/api.js"></script>
+<script>
+requireAuth();
+
+async function doTransfer() {
+  const body = {
+    from_account: Number(document.getElementById('from').value),
+    to_account: Number(document.getElementById('to').value),
+    amount: Number(document.getElementById('amount').value),
+    note: document.getElementById('note').value
+  };
+  try {
+    const res = await api('/transactions/transfer', { method: 'POST', body });
+    document.getElementById('transfer-msg').textContent = 'Transfer #' + res.id + ' complete.';
+  } catch (e) {
+    document.getElementById('transfer-msg').textContent = e.message;
+  }
+}
+
+async function doExport() {
+  const account = document.getElementById('export-account').value;
+  try {
+    const res = await api('/export/statement?account=' + encodeURIComponent(account) + '&format=csv');
+    document.getElementById('export-out').textContent = res.output;
+  } catch (e) {
+    document.getElementById('export-out').textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>

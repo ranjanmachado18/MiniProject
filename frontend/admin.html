@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VulnBank - Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="navbar">
+    <h1>&#128176; VulnBank</h1>
+    <div>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="transfer.html">Transfer</a>
+      <a href="admin.html">Admin</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>All users (admin only — but check who can actually reach this)</h2>
+      <button onclick="loadUsers()">Load users</button>
+      <table id="users-table">
+        <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Password</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Set account balance</h2>
+      <input id="bal-account-id" placeholder="Account ID">
+      <input id="bal-amount" type="number" placeholder="New balance">
+      <button onclick="setBalance()">Update</button>
+      <p id="bal-msg"></p>
+    </div>
+
+    <div class="card">
+      <h2>Any-user profile edit (privilege escalation playground)</h2>
+      <p class="muted">Try PUT-ing role:"admin" onto your own or another user's id.</p>
+      <input id="edit-user-id" placeholder="User ID">
+      <select id="edit-role">
+        <option value="user">user</option>
+        <option value="admin">admin</option>
+      </select>
+      <button onclick="editUser()">Update role</button>
+      <p id="edit-msg"></p>
+    </div>
+  </div>
+
+<script src="js/api.js"></script>
+<script>
+requireAuth();
+
+async function loadUsers() {
+  try {
+    const rows = await api('/users'); // note: not the /admin/users route -- this one has weaker checks
+    const tbody = document.querySelector('#users-table tbody');
+    tbody.innerHTML = '';
+    rows.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${u.id}</td><td>${u.username}</td><td>${u.email||''}</td><td>${u.role}</td><td>${u.password}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (e) { alert(e.message); }
+}
+
+async function setBalance() {
+  try {
+    await api('/admin/set-balance', {
+      method: 'POST',
+      body: { account_id: Number(document.getElementById('bal-account-id').value),
+              balance: Number(document.getElementById('bal-amount').value) }
+    });
+    document.getElementById('bal-msg').textContent = 'Updated.';
+  } catch (e) { document.getElementById('bal-msg').textContent = e.message; }
+}
+
+async function editUser() {
+  const id = document.getElementById('edit-user-id').value;
+  const role = document.getElementById('edit-role').value;
+  try {
+    await api('/users/' + id, { method: 'PUT', body: { role } });
+    document.getElementById('edit-msg').textContent = 'Role updated.';
+  } catch (e) { document.getElementById('edit-msg').textContent = e.message; }
+}
+</script>
+</body>
+</html>

